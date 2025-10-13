@@ -96,6 +96,7 @@ def build_graph(train: Dict[int, Iterable[int]], n_users: int, n_items: int) -> 
 
 _cached_pos_sets = None
 _cached_users_list = None
+_cached_pos_arrays = None
 
 def sample_batch(train: Dict[int, np.ndarray],
                  n_items: int,
@@ -103,40 +104,49 @@ def sample_batch(train: Dict[int, np.ndarray],
                  negatives_per_pos: int = 1,
                  rng: np.random.Generator = None) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
     """
-    Uniform BPR sampling: for each positive (u, i), sample `negatives_per_pos` negatives j not in user u's positives.
-    Returns tensors (users, pos_items, neg_items) of length `batch_size`.
+    Optimized BPR sampling with vectorized negative sampling.
     """
-    global _cached_pos_sets, _cached_users_list
+    global _cached_pos_sets, _cached_users_list, _cached_pos_arrays
 
     if rng is None:
         rng = np.random.default_rng()
 
     if _cached_pos_sets is None or _cached_users_list is None:
-        _cached_users_list = list(train.keys())
+        _cached_users_list = np.array(list(train.keys()))
         _cached_pos_sets = {u: set(items.tolist() if isinstance(items, np.ndarray) else list(items)) for u, items in train.items()}
+        _cached_pos_arrays = {u: np.array(list(items)) for u, items in train.items()}
 
-    users = _cached_users_list
+    users_arr = _cached_users_list
     pos_sets = _cached_pos_sets
+    pos_arrays = _cached_pos_arrays
 
-    batch_users = []
-    batch_pos = []
-    batch_neg = []
+    total_samples = batch_size * negatives_per_pos
+    batch_users = np.zeros(total_samples, dtype=np.int64)
+    batch_pos = np.zeros(total_samples, dtype=np.int64)
+    batch_neg = np.zeros(total_samples, dtype=np.int64)
 
-    while len(batch_users) < batch_size:
-        u = rng.choice(users)
-        if len(pos_sets[u]) == 0:
+    idx = 0
+    while idx < total_samples:
+        u = int(rng.choice(users_arr))
+        user_pos_items = pos_arrays.get(u)
+        if user_pos_items is None or len(user_pos_items) == 0:
             continue
-        i = rng.choice(list(pos_sets[u]))
-        for _ in range(negatives_per_pos):
-            while True:
-                j = int(rng.integers(0, n_items))
-                if j not in pos_sets[u]:
-                    break
-            batch_users.append(u)
-            batch_pos.append(i)
-            batch_neg.append(j)
 
-    return (torch.tensor(batch_users[:batch_size], dtype=torch.long),
-            torch.tensor(batch_pos[:batch_size], dtype=torch.long),
-            torch.tensor(batch_neg[:batch_size], dtype=torch.long))
+        i = int(rng.choice(user_pos_items))
+        user_pos_set = pos_sets[u]
+
+        samples_needed = min(negatives_per_pos, total_samples - idx)
+        for _ in range(samples_needed):
+            j = int(rng.integers(0, n_items))
+            while j in user_pos_set:
+                j = int(rng.integers(0, n_items))
+
+            batch_users[idx] = u
+            batch_pos[idx] = i
+            batch_neg[idx] = j
+            idx += 1
+
+    return (torch.from_numpy(batch_users[:batch_size]),
+            torch.from_numpy(batch_pos[:batch_size]),
+            torch.from_numpy(batch_neg[:batch_size]))
 

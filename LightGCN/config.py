@@ -51,7 +51,7 @@ def get_lightgcn_config(dataset='yelp2018', device='cpu'):
         data_dir=f'data/{dataset}',
         device=device,
         epochs=100,
-        batch_size=4096,
+        batch_size=2048,
         lr=1e-3,
         weight_decay=1e-4,
         embed_dim=64,
@@ -67,6 +67,7 @@ def get_mf_config(dataset='yelp2018', device='cpu'):
     """Matrix Factorization baseline (K=0)"""
     config = get_lightgcn_config(dataset, device)
     config.K = 0
+    config.batch_size = 2048
     return config
 
 
