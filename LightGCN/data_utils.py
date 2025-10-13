@@ -94,6 +94,9 @@ def build_graph(train: Dict[int, Iterable[int]], n_users: int, n_items: int) -> 
     return torch.sparse_coo_tensor(idx, val, size=(N, N)).coalesce()
 
 
+_cached_pos_sets = None
+_cached_users_list = None
+
 def sample_batch(train: Dict[int, np.ndarray],
                  n_items: int,
                  batch_size: int,
@@ -103,12 +106,17 @@ def sample_batch(train: Dict[int, np.ndarray],
     Uniform BPR sampling: for each positive (u, i), sample `negatives_per_pos` negatives j not in user u's positives.
     Returns tensors (users, pos_items, neg_items) of length `batch_size`.
     """
+    global _cached_pos_sets, _cached_users_list
+
     if rng is None:
         rng = np.random.default_rng()
 
-    users = list(train.keys())
-    # build fast pos set per user
-    pos_sets = {u: set(items.tolist() if isinstance(items, np.ndarray) else list(items)) for u, items in train.items()}
+    if _cached_pos_sets is None or _cached_users_list is None:
+        _cached_users_list = list(train.keys())
+        _cached_pos_sets = {u: set(items.tolist() if isinstance(items, np.ndarray) else list(items)) for u, items in train.items()}
+
+    users = _cached_users_list
+    pos_sets = _cached_pos_sets
 
     batch_users = []
     batch_pos = []
@@ -119,7 +127,6 @@ def sample_batch(train: Dict[int, np.ndarray],
         if len(pos_sets[u]) == 0:
             continue
         i = rng.choice(list(pos_sets[u]))
-        # sample negatives
         for _ in range(negatives_per_pos):
             while True:
                 j = int(rng.integers(0, n_items))
