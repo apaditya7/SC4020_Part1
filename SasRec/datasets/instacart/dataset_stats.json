@@ -1,0 +1,5 @@
+{
+  "num_users": 10000,
+  "num_items": 5000,
+  "num_interactions": 7344869
+}
