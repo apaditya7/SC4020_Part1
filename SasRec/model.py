@@ -164,11 +164,9 @@ class SASRec(torch.nn.Module):
             scores[:,0] = float("-inf")
             scores[:,self.num_items+1:] = float("-inf")
 
-            if rated is not None:
-                repeat_boost = 0.2  # tune between 0.1-0.3 on validation
-                for i in range(len(input)):
-                    for j in rated[i]:
-                        scores[i, j] = scores[i, j] + repeat_boost
+            # Don't mask repeats on grocery data - just leave them in!
+            # (The old code set scores[i,j] = -inf which removed repeats)
+            pass  # Do nothing - repeats stay in the ranking
 
             result = torch.topk(scores, limit, dim=1)
             return result.indices, result.values
