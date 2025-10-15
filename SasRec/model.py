@@ -165,9 +165,10 @@ class SASRec(torch.nn.Module):
             scores[:,self.num_items+1:] = float("-inf")
 
             if rated is not None:
+                repeat_boost = 0.2  # tune between 0.1-0.3 on validation
                 for i in range(len(input)):
                     for j in rated[i]:
-                        scores[i, j] = float("-inf")
+                        scores[i, j] = scores[i, j] + repeat_boost
 
             result = torch.topk(scores, limit, dim=1)
             return result.indices, result.values
