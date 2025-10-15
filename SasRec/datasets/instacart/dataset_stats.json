@@ -1,5 +1,5 @@
 {
   "num_users": 10000,
-  "num_items": 5000,
-  "num_interactions": 7344869
+  "num_items": 4996,
+  "num_interactions": 2791277
 }

@@ -79,15 +79,15 @@ def get_instacart_gsasrec_config():
     """gSASRec configuration optimized for Instacart dataset"""
     return ExperimentConfig(
         dataset_name='instacart',
-        sequence_length=800,  # Long sequences due to item-level (not basket-level) representation
-        embedding_dim=64,  # Reduced to handle longer sequences
-        num_heads=1,
+        sequence_length=150,  # Focus on recent purchases (~10-12 orders)
+        embedding_dim=128,  # Standard size with shorter sequences
+        num_heads=2,  # Dual attention heads
         max_batches_per_epoch=100,
         num_blocks=2,
-        dropout_rate=0.3,  # Reduced dropout for sparse data
-        negs_per_pos=128,  # Reduced negatives to speed up training
-        gbce_t=0.5,  # Less aggressive calibration
-        max_epochs=100,
-        early_stopping_patience=15,  # More aggressive early stopping
+        dropout_rate=0.2,  # Light regularization
+        negs_per_pos=256,  # Standard gSASRec
+        gbce_t=0.75,  # Standard calibration
+        max_epochs=50,
+        early_stopping_patience=10,
         reuse_item_embeddings=False
     )
