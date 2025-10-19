@@ -22,7 +22,7 @@ class LightGCNConfig:
         eval_ks=(10, 20),
         eval_batch_size=2048,
         # Early stopping
-        early_stopping_patience=20,
+        early_stopping_patience=10,
         val_metric='NDCG@10'
     ):
         self.dataset = dataset

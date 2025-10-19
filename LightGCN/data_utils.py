@@ -94,31 +94,31 @@ def build_graph(train: Dict[int, Iterable[int]], n_users: int, n_items: int) -> 
     return torch.sparse_coo_tensor(idx, val, size=(N, N)).coalesce()
 
 
-_cached_pos_sets = None
-_cached_users_list = None
-_cached_pos_arrays = None
-
 def sample_batch(train: Dict[int, np.ndarray],
                  n_items: int,
                  batch_size: int,
                  negatives_per_pos: int = 1,
-                 rng: np.random.Generator = None) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+                 rng: np.random.Generator = None,
+                 _cache={}) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
     """
     Optimized BPR sampling with vectorized negative sampling.
     """
-    global _cached_pos_sets, _cached_users_list, _cached_pos_arrays
-
     if rng is None:
         rng = np.random.default_rng()
 
-    if _cached_pos_sets is None or _cached_users_list is None:
-        _cached_users_list = np.array(list(train.keys()))
-        _cached_pos_sets = {u: set(items.tolist() if isinstance(items, np.ndarray) else list(items)) for u, items in train.items()}
-        _cached_pos_arrays = {u: np.array(list(items)) for u, items in train.items()}
+    train_id = id(train)
+    if train_id not in _cache:
+        _cache.clear()
+        _cache[train_id] = {
+            'users_list': np.array(list(train.keys())),
+            'pos_sets': {u: set(items.tolist() if isinstance(items, np.ndarray) else list(items)) for u, items in train.items()},
+            'pos_arrays': {u: np.array(list(items)) for u, items in train.items()}
+        }
 
-    users_arr = _cached_users_list
-    pos_sets = _cached_pos_sets
-    pos_arrays = _cached_pos_arrays
+    cached = _cache[train_id]
+    users_arr = cached['users_list']
+    pos_sets = cached['pos_sets']
+    pos_arrays = cached['pos_arrays']
 
     total_samples = batch_size * negatives_per_pos
     batch_users = np.zeros(total_samples, dtype=np.int64)
