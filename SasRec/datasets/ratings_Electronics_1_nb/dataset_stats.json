@@ -1,0 +1,8 @@
+{
+  "num_users": 118620,
+  "num_items": 44843,
+  "num_interactions": 1072740,
+  "target": "next-basket",
+  "max_seq_len": 50,
+  "pad_token_id": 44844
+}

@@ -1,0 +1,8 @@
+{
+  "num_users": 124895,
+  "num_items": 44843,
+  "num_interactions": 1072740,
+  "target": "next-item",
+  "max_seq_len": 50,
+  "pad_token_id": 44844
+}
